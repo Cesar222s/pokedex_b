@@ -73,6 +73,49 @@ router.post('/friends/request', auth, async (req, res) => {
   res.status(201).json({ message: 'Friend request sent.', request });
 });
 
+// Send friend request by Code
+router.post('/friends/request/code', auth, async (req, res) => {
+  const { code } = req.body;
+  if (!code) return res.status(400).json({ error: 'Friend code is required.' });
+
+  const targetUser = await User.findOne({ friendCode: code.toUpperCase() });
+  if (!targetUser) return res.status(404).json({ error: 'Invalid friend code.' });
+  
+  if (targetUser._id.equals(req.user._id)) {
+    return res.status(400).json({ error: 'Cannot add yourself as a friend.' });
+  }
+
+  // Check if already friends
+  const currentUser = await User.findById(req.user._id);
+  if (currentUser.friends.includes(targetUser._id)) {
+    return res.status(409).json({ error: 'Already friends.' });
+  }
+
+  // Check existing pending request
+  const existing = await FriendRequest.findOne({
+    $or: [
+      { from: req.user._id, to: targetUser._id, status: 'pending' },
+      { from: targetUser._id, to: req.user._id, status: 'pending' }
+    ]
+  });
+  if (existing) {
+    return res.status(409).json({ error: 'Friend request already pending.' });
+  }
+
+  const request = new FriendRequest({ from: req.user._id, to: targetUser._id });
+  await request.save();
+
+  // Notify target user
+  await sendPushNotification(
+    targetUser._id,
+    'Nueva solicitud de amistad',
+    `${req.user.username} quiere ser tu amigo (vía código).`,
+    { url: '/social' }
+  );
+
+  res.status(201).json({ message: 'Friend request sent.', request });
+});
+
 // Get pending friend requests
 router.get('/friends/requests', auth, async (req, res) => {
   const incoming = await FriendRequest.find({ to: req.user._id, status: 'pending' })

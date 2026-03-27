@@ -9,9 +9,10 @@ const friendRequestSchema = new mongoose.Schema({
 });
 
 const userSchema = new mongoose.Schema({
-  username: { type: String, required: true, trim: true, minlength: 3, maxlength: 30 },
+  username: { type: String, required: true, unique: true, trim: true, minlength: 3, maxlength: 30 },
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
   password: { type: String, required: true, minlength: 6 },
+  friendCode: { type: String, unique: true, sparse: true },
   favorites: [{ type: Number }],
   friends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   pushSubscription: { type: Object, default: null },
@@ -32,6 +33,7 @@ userSchema.methods.toPublicJSON = function () {
     _id: this._id,
     username: this.username,
     email: this.email,
+    friendCode: this.friendCode,
     favorites: this.favorites,
     friends: this.friends,
     createdAt: this.createdAt

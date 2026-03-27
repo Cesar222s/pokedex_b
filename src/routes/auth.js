@@ -20,7 +20,16 @@ router.post('/register', async (req, res) => {
       return res.status(409).json({ error: 'Email already registered.' });
     }
 
-    const user = new User({ username, email, password });
+    // Generate unique short friend code (6 chars)
+    let friendCode;
+    let codeExists = true;
+    while (codeExists) {
+      friendCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const check = await User.findOne({ friendCode });
+      if (!check) codeExists = false;
+    }
+
+    const user = new User({ username, email, password, friendCode });
     await user.save();
 
     const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '7d' });
@@ -31,8 +40,17 @@ router.post('/register', async (req, res) => {
       user: user.toPublicJSON()
     });
   } catch (err) {
+    console.error('Registration Error Details:', {
+      message: err.message,
+      code: err.code,
+      stack: err.stack
+    });
+    
     if (err.code === 11000) {
-      return res.status(409).json({ error: 'Email already registered.' });
+      const field = Object.keys(err.keyPattern)[0];
+      return res.status(409).json({ 
+        error: field === 'email' ? 'Email already registered.' : 'Username already taken.' 
+      });
     }
     throw err;
   }

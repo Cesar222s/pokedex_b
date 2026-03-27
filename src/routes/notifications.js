@@ -4,12 +4,17 @@ const webpush = require('web-push');
 const auth = require('../middleware/auth');
 const { User } = require('../models/User');
 
-// Configure web-push
-webpush.setVapidDetails(
-  process.env.PUSH_CONTACT_EMAIL || 'mailto:admin@example.com',
-  process.env.PUSH_VAPID_PUBLIC_KEY,
-  process.env.PUSH_VAPID_PRIVATE_KEY
-);
+// Configure web-push (Safe check for production/Railway)
+if (process.env.PUSH_VAPID_PUBLIC_KEY && process.env.PUSH_VAPID_PRIVATE_KEY) {
+  webpush.setVapidDetails(
+    process.env.PUSH_CONTACT_EMAIL || 'mailto:admin@serviciomaestro.com',
+    process.env.PUSH_VAPID_PUBLIC_KEY,
+    process.env.PUSH_VAPID_PRIVATE_KEY
+  );
+  console.log('✅ Web-Push configured successfully.');
+} else {
+  console.warn('⚠️ PUSH_VAPID_PUBLIC_KEY or PUSH_VAPID_PRIVATE_KEY missing. Push notifications disabled.');
+}
 
 // Subscribe route
 router.post('/subscribe', auth, async (req, res) => {
