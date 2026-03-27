@@ -13,7 +13,11 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
   password: { type: String, required: true, minlength: 6 },
   friendCode: { type: String, unique: true, sparse: true },
-  favorites: [{ type: Number }],
+  favorites: [{
+    pokemonId: { type: Number, required: true },
+    name: { type: String, required: true },
+    sprite: { type: String, required: true }
+  }],
   friends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   pushSubscription: { type: Object, default: null },
   createdAt: { type: Date, default: Date.now }
