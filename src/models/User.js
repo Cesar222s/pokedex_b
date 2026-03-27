@@ -16,7 +16,8 @@ const userSchema = new mongoose.Schema({
   favorites: [{
     pokemonId: { type: Number, required: true },
     name: { type: String, required: true },
-    sprite: { type: String, required: true }
+    sprite: { type: String, required: true },
+    types: [{ type: String }]
   }],
   friends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   pushSubscription: { type: Object, default: null },
