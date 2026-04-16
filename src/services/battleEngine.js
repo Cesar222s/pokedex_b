@@ -108,23 +108,23 @@ function resolveTurn(challengerTeam, opponentTeam, state, challengerMoveName, op
   const firstDmg = calculateDamage(first.poke.stats, firstDefender.stats, first.move, first.poke.types);
   const effectiveness1 = getTypeEffectiveness(first.move.type, firstDefender.types || []);
 
-  events.push(`${first.poke.name} used ${first.move.name}!`);
-  if (effectiveness1 > 1) events.push("It's super effective!");
-  else if (effectiveness1 < 1 && effectiveness1 > 0) events.push("It's not very effective...");
-  else if (effectiveness1 === 0) events.push("It doesn't affect the opponent...");
+  events.push(`¡${first.poke.name} usó ${first.move.name}!`);
+  if (effectiveness1 > 1) events.push("¡Es muy eficaz!");
+  else if (effectiveness1 < 1 && effectiveness1 > 0) events.push("No es muy eficaz...");
+  else if (effectiveness1 === 0) events.push("No afecta al oponente...");
 
   if (first.isChallenger) {
     oHP[state.opponentActive] = Math.max(0, oHP[state.opponentActive] - firstDmg);
-    events.push(`${firstDefender.name} took ${firstDmg} damage! (HP: ${oHP[state.opponentActive]})`);
+    events.push(`¡${firstDefender.name} recibió ${firstDmg} de daño!`);
     if (oHP[state.opponentActive] <= 0) {
-      events.push(`${firstDefender.name} fainted!`);
+      events.push(`¡${firstDefender.name} se ha debilitado!`);
       opponentFainted = true;
     }
   } else {
     cHP[state.challengerActive] = Math.max(0, cHP[state.challengerActive] - firstDmg);
-    events.push(`${firstDefender.name} took ${firstDmg} damage! (HP: ${cHP[state.challengerActive]})`);
+    events.push(`¡${firstDefender.name} recibió ${firstDmg} de daño!`);
     if (cHP[state.challengerActive] <= 0) {
-      events.push(`${firstDefender.name} fainted!`);
+      events.push(`¡${firstDefender.name} se ha debilitado!`);
       challengerFainted = true;
     }
   }
@@ -136,23 +136,23 @@ function resolveTurn(challengerTeam, opponentTeam, state, challengerMoveName, op
     const secondDmg = calculateDamage(second.poke.stats, secondDefender.stats, second.move, second.poke.types);
     const effectiveness2 = getTypeEffectiveness(second.move.type, secondDefender.types || []);
 
-    events.push(`${second.poke.name} used ${second.move.name}!`);
-    if (effectiveness2 > 1) events.push("It's super effective!");
-    else if (effectiveness2 < 1 && effectiveness2 > 0) events.push("It's not very effective...");
-    else if (effectiveness2 === 0) events.push("It doesn't affect the opponent...");
+    events.push(`¡${second.poke.name} usó ${second.move.name}!`);
+    if (effectiveness2 > 1) events.push("¡Es muy eficaz!");
+    else if (effectiveness2 < 1 && effectiveness2 > 0) events.push("No es muy eficaz...");
+    else if (effectiveness2 === 0) events.push("No afecta al oponente...");
 
     if (second.isChallenger) {
       oHP[state.opponentActive] = Math.max(0, oHP[state.opponentActive] - secondDmg);
-      events.push(`${secondDefender.name} took ${secondDmg} damage! (HP: ${oHP[state.opponentActive]})`);
+      events.push(`¡${secondDefender.name} recibió ${secondDmg} de daño!`);
       if (oHP[state.opponentActive] <= 0) {
-        events.push(`${secondDefender.name} fainted!`);
+        events.push(`¡${secondDefender.name} se ha debilitado!`);
         opponentFainted = true;
       }
     } else {
       cHP[state.challengerActive] = Math.max(0, cHP[state.challengerActive] - secondDmg);
-      events.push(`${secondDefender.name} took ${secondDmg} damage! (HP: ${cHP[state.challengerActive]})`);
+      events.push(`¡${secondDefender.name} recibió ${secondDmg} de daño!`);
       if (cHP[state.challengerActive] <= 0) {
-        events.push(`${secondDefender.name} fainted!`);
+        events.push(`¡${secondDefender.name} se ha debilitado!`);
         challengerFainted = true;
       }
     }

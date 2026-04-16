@@ -5,6 +5,7 @@ const { User } = require('../models/User');
 const auth = require('../middleware/auth');
 const { resolveTurn, hasAlivePokemon, getNextAlive } = require('../services/battleEngine');
 const { sendPushNotification } = require('./notifications');
+const socketService = require('../services/socket');
 const router = express.Router();
 
 // Challenge a friend
@@ -143,7 +144,12 @@ router.post('/:id/turn', auth, async (req, res) => {
     if (isChallenger) battle.state.challengerActive = switchTo;
     else battle.state.opponentActive = switchTo;
     await battle.save();
-    return res.json({ message: 'Pokémon switched.', battle: await getBattleState(battle._id) });
+    
+    // Emit switch event
+    const battleState = await getBattleState(battle._id);
+    socketService.emitToBattle(battle._id, 'battle-updated', { battle: battleState });
+    
+    return res.json({ message: 'Pokémon switched.', battle: battleState });
   }
 
   if (!moveName) {
@@ -163,6 +169,11 @@ router.post('/:id/turn', auth, async (req, res) => {
   
   if (myMove && !opponentMove) {
     const opponentId = isChallenger ? battle.opponent : battle.challenger;
+    
+    // Notify via Socket (Instant)
+    socketService.emitToBattle(battle._id, 'opponent-moved', { userId: req.user._id });
+    
+    // Notify via Push (Background)
     await sendPushNotification(
       opponentId,
       '¡Tu turno!',
@@ -197,7 +208,7 @@ router.post('/:id/turn', auth, async (req, res) => {
       if (next >= 0) {
         battle.state.challengerActive = next;
         battle.log[battle.log.length - 1].events.push(
-          `${battle.challengerTeam.pokemon[next].name} was sent out!`
+          `¡${battle.challengerTeam.pokemon[next].name} entra al combate!`
         );
       }
     }
@@ -206,7 +217,7 @@ router.post('/:id/turn', auth, async (req, res) => {
       if (next >= 0) {
         battle.state.opponentActive = next;
         battle.log[battle.log.length - 1].events.push(
-          `${battle.opponentTeam.pokemon[next].name} was sent out!`
+          `¡${battle.opponentTeam.pokemon[next].name} entra al combate!`
         );
       }
     }
@@ -215,11 +226,11 @@ router.post('/:id/turn', auth, async (req, res) => {
     if (!hasAlivePokemon(result.challengerHP)) {
       battle.status = 'completed';
       battle.winner = battle.opponent;
-      battle.log[battle.log.length - 1].events.push('Battle over! Opponent wins!');
+      battle.log[battle.log.length - 1].events.push('¡El combate ha terminado! ¡Tu oponente gana!');
     } else if (!hasAlivePokemon(result.opponentHP)) {
       battle.status = 'completed';
       battle.winner = battle.challenger;
-      battle.log[battle.log.length - 1].events.push('Battle over! Challenger wins!');
+      battle.log[battle.log.length - 1].events.push('¡El combate ha terminado! ¡Victoria para ti!');
     }
 
     // Notify both about turn resolution or end
@@ -242,6 +253,10 @@ router.post('/:id/turn', auth, async (req, res) => {
 
     battle.markModified('state');
     battle.markModified('log');
+
+    // Emit final turn resolution to both players via Socket
+    const finalState = await getBattleState(battle._id);
+    socketService.emitToBattle(battle._id, 'battle-updated', { battle: finalState });
   }
 
   await battle.save();

@@ -47,10 +47,17 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 3001;
 const MONGODB_URI = process.env.MONGODB_URI;
 
+const http = require('http');
+const socketService = require('./services/socket');
+const server = http.createServer(app);
+
+// Initialize Sockets
+socketService.init(server);
+
 mongoose.connect(MONGODB_URI)
   .then(() => {
     console.log('✅ Connected to MongoDB Atlas');
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
     });
   })
