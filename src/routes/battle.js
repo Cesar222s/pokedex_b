@@ -44,7 +44,7 @@ router.post('/challenge', auth, async (req, res) => {
     opponentId,
     '¡Nuevo reto de batalla!',
     `${user.username} te ha desafiado a un combate Pokémon.`,
-    { url: '/battles' }
+    { url: `/battles?accept=${battle._id}` }
   );
 
   res.status(201).json({ message: 'Battle challenge sent!', battle });
@@ -156,6 +156,20 @@ router.post('/:id/turn', auth, async (req, res) => {
   } else {
     battle.state.opponentMove = moveName;
   }
+  
+  // Notify opponent if they haven't moved yet and turn hasn't finished
+  const myMove = isChallenger ? battle.state.challengerMove : battle.state.opponentMove;
+  const opponentMove = isChallenger ? battle.state.opponentMove : battle.state.challengerMove;
+  
+  if (myMove && !opponentMove) {
+    const opponentId = isChallenger ? battle.opponent : battle.challenger;
+    await sendPushNotification(
+      opponentId,
+      '¡Tu turno!',
+      `${req.user.username} ha realizado su movimiento. ¡Es tu turno de actuar!`,
+      { url: `/battles/${battle._id}` }
+    );
+  }
 
   // If both have submitted, resolve the turn
   if (battle.state.challengerMove && battle.state.opponentMove) {
@@ -206,6 +220,19 @@ router.post('/:id/turn', auth, async (req, res) => {
       battle.status = 'completed';
       battle.winner = battle.challenger;
       battle.log[battle.log.length - 1].events.push('Battle over! Challenger wins!');
+    }
+
+    // Notify both about turn resolution or end
+    const winnerId = battle.status === 'completed' ? battle.winner : null;
+    if (winnerId) {
+      const loserId = winnerId.toString() === battle.challenger.toString() ? battle.opponent : battle.challenger;
+      await sendPushNotification(winnerId, '¡Victoria!', '¡Has ganado la batalla Pokémon!', { url: `/battles/${battle._id}` });
+      await sendPushNotification(loserId, 'Derrota', 'Tu equipo ha caído en combate.', { url: `/battles/${battle._id}` });
+    } else {
+      // Both need to move again
+      const msg = `El turno ${battle.state.currentTurn} ha terminado. ¿Cuál será tu siguiente movimiento?`;
+      await sendPushNotification(battle.challenger, 'Turno resuelto', msg, { url: `/battles/${battle._id}` });
+      await sendPushNotification(battle.opponent, 'Turno resuelto', msg, { url: `/battles/${battle._id}` });
     }
 
     // Reset moves and increment turn
