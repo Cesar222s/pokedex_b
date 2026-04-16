@@ -114,25 +114,34 @@ router.get('/:id/evolution', async (req, res) => {
 
 // Get moves for a Pokémon (with details)
 router.get('/:id/moves', async (req, res) => {
-  const p = await pokeapi.getPokemon(req.params.id);
-  const movePromises = p.moves.slice(0, 30).map(async (m) => {
-    try {
-      const moveData = await pokeapi.getMove(m.move.name);
-      return {
-        name: moveData.name,
-        power: moveData.power,
-        accuracy: moveData.accuracy,
-        pp: moveData.pp,
-        type: moveData.type?.name,
-        damageClass: moveData.damage_class?.name
-      };
-    } catch {
-      return null;
-    }
-  });
+  try {
+    const p = await pokeapi.getPokemon(req.params.id);
+    
+    // Sort moves to prioritize level-up and machine moves if possible,
+    // but for now let's just take a larger slice (top 70) to ensure variety
+    const movePromises = p.moves.slice(0, 70).map(async (m) => {
+      try {
+        const moveData = await pokeapi.getMove(m.move.name);
+        return {
+          name: moveData.name,
+          power: moveData.power,
+          accuracy: moveData.accuracy,
+          pp: moveData.pp,
+          type: moveData.type?.name,
+          damageClass: moveData.damage_class?.name,
+          priority: moveData.priority,
+          effect: moveData.effect_entries?.find(e => e.language.name === 'en')?.short_effect
+        };
+      } catch {
+        return null;
+      }
+    });
 
-  const moves = (await Promise.all(movePromises)).filter(Boolean);
-  res.json({ moves });
+    const moves = (await Promise.all(movePromises)).filter(Boolean);
+    res.json({ moves });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch moves' });
+  }
 });
 
 module.exports = router;
