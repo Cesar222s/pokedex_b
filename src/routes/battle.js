@@ -173,13 +173,16 @@ router.post('/:id/turn', auth, async (req, res) => {
     // Notify via Socket (Instant)
     socketService.emitToBattle(battle._id, 'opponent-moved', { userId: req.user._id });
     
-    // Notify via Push (Background)
-    await sendPushNotification(
-      opponentId,
-      '¡Tu turno!',
-      `${req.user.username} ha realizado su movimiento. ¡Es tu turno de actuar!`,
-      { url: `/battles/${battle._id}` }
-    );
+    // Notify via Push ONLY if opponent is NOT in the room
+    const isRoomActive = await socketService.isRoomActive(battle._id);
+    if (!isRoomActive) {
+      await sendPushNotification(
+        opponentId,
+        '¡Tu turno!',
+        `${req.user.username} ha realizado su movimiento. ¡Es tu turno de actuar!`,
+        { url: `/battles/${battle._id}` }
+      );
+    }
   }
 
   // If both have submitted, resolve the turn
@@ -234,16 +237,19 @@ router.post('/:id/turn', auth, async (req, res) => {
     }
 
     // Notify both about turn resolution or end
-    const winnerId = battle.status === 'completed' ? battle.winner : null;
     if (winnerId) {
       const loserId = winnerId.toString() === battle.challenger.toString() ? battle.opponent : battle.challenger;
       await sendPushNotification(winnerId, '¡Victoria!', '¡Has ganado la batalla Pokémon!', { url: `/battles/${battle._id}` });
       await sendPushNotification(loserId, 'Derrota', 'Tu equipo ha caído en combate.', { url: `/battles/${battle._id}` });
     } else {
       // Both need to move again
-      const msg = `El turno ${battle.state.currentTurn} ha terminado. ¿Cuál será tu siguiente movimiento?`;
-      await sendPushNotification(battle.challenger, 'Turno resuelto', msg, { url: `/battles/${battle._id}` });
-      await sendPushNotification(battle.opponent, 'Turno resuelto', msg, { url: `/battles/${battle._id}` });
+      // Skip turn res notifications if both are active in the room
+      const isRoomActive = await socketService.isRoomActive(battle._id);
+      if (!isRoomActive) {
+        const msg = `El turno ${battle.state.currentTurn} ha terminado. ¿Cuál será tu siguiente movimiento?`;
+        await sendPushNotification(battle.challenger, 'Turno resuelto', msg, { url: `/battles/${battle._id}` });
+        await sendPushNotification(battle.opponent, 'Turno resuelto', msg, { url: `/battles/${battle._id}` });
+      }
     }
 
     // Reset moves and increment turn

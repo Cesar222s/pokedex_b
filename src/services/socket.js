@@ -15,13 +15,16 @@ function init(server) {
 
     // Join a battle room
     socket.on('join-battle', (battleId) => {
-      socket.join(`battle_${battleId}`);
-      console.log(`Socket: User joined battle room: battle_${battleId}`);
+      const roomId = `battle_${battleId.toString()}`;
+      socket.join(roomId);
+      socket.userId = socket.handshake.auth.token ? 'some-way-to-get-id' : null; // We need to store user ID
+      console.log(`Socket: User joined battle room: ${roomId}`);
     });
 
     socket.on('leave-battle', (battleId) => {
-      socket.leave(`battle_${battleId}`);
-      console.log(`Socket: User left battle room: battle_${battleId}`);
+      const roomId = `battle_${battleId.toString()}`;
+      socket.leave(roomId);
+      console.log(`Socket: User left battle room: ${roomId}`);
     });
 
     socket.on('disconnect', () => {
@@ -44,12 +47,25 @@ function getIO() {
  */
 function emitToBattle(battleId, event, data) {
   if (io) {
-    io.to(`battle_${battleId}`).emit(event, data);
+    const roomId = `battle_${battleId.toString()}`;
+    io.to(roomId).emit(event, data);
   }
+}
+
+/**
+ * Check if at least one person is in the room
+ * (Simplified: if anyone is in the room, we assume real-time is active)
+ */
+async function isRoomActive(battleId) {
+  if (!io) return false;
+  const roomId = `battle_${battleId.toString()}`;
+  const sockets = await io.in(roomId).fetchSockets();
+  return sockets.length > 1; // Both players are in the room
 }
 
 module.exports = {
   init,
   getIO,
-  emitToBattle
+  emitToBattle,
+  isRoomActive
 };
