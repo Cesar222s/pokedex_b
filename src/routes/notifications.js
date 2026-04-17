@@ -43,8 +43,6 @@ const sendPushNotification = async (userId, title, body, data = {}) => {
       notification: {
         title,
         body,
-        icon: '/pwa-192x192.svg',
-        badge: '/pwa-192x192.svg',
         vibrate: [100, 50, 100],
         data,
         actions: [
