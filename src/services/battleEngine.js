@@ -178,10 +178,60 @@ function getNextAlive(hpArray, currentIndex) {
   return -1;
 }
 
+/**
+ * Resolve a single attack (turn-by-turn system)
+ * Only one Pokémon attacks per turn.
+ */
+function resolveSingleAttack(attackerTeam, defenderTeam, state, moveName, isAttackerChallenger) {
+  const events = [];
+  const aIdx = isAttackerChallenger ? state.challengerActive : state.opponentActive;
+  const dIdx = isAttackerChallenger ? state.opponentActive : state.challengerActive;
+  const attacker = attackerTeam.pokemon[aIdx];
+  const defender = defenderTeam.pokemon[dIdx];
+  const cHP = [...state.challengerHP];
+  const oHP = [...state.opponentHP];
+
+  if (!attacker || !defender) {
+    events.push('Error: Pokémon activo inválido.');
+    return { events, challengerHP: cHP, opponentHP: oHP, defenderFainted: false };
+  }
+
+  const move = attacker.selectedMoves.find(m => m.name === moveName);
+  if (!move) {
+    events.push('Error: Movimiento inválido.');
+    return { events, challengerHP: cHP, opponentHP: oHP, defenderFainted: false };
+  }
+
+  const dmg = calculateDamage(attacker.stats, defender.stats, move, attacker.types);
+  const effectiveness = getTypeEffectiveness(move.type, defender.types || []);
+
+  events.push(`¡${attacker.name} usó ${move.name}!`);
+  if (effectiveness > 1) events.push("¡Es muy eficaz!");
+  else if (effectiveness < 1 && effectiveness > 0) events.push("No es muy eficaz...");
+  else if (effectiveness === 0) events.push("No afecta al oponente...");
+
+  // Apply damage to defender
+  if (isAttackerChallenger) {
+    oHP[dIdx] = Math.max(0, oHP[dIdx] - dmg);
+    events.push(`¡${defender.name} recibió ${dmg} de daño!`);
+  } else {
+    cHP[dIdx] = Math.max(0, cHP[dIdx] - dmg);
+    events.push(`¡${defender.name} recibió ${dmg} de daño!`);
+  }
+
+  const defenderFainted = isAttackerChallenger ? oHP[dIdx] <= 0 : cHP[dIdx] <= 0;
+  if (defenderFainted) {
+    events.push(`¡${defender.name} se ha debilitado!`);
+  }
+
+  return { events, challengerHP: cHP, opponentHP: oHP, defenderFainted };
+}
+
 module.exports = {
   calculateDamage,
   getTypeEffectiveness,
   resolveTurn,
+  resolveSingleAttack,
   hasAlivePokemon,
   getNextAlive,
   TYPE_CHART

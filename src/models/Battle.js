@@ -18,7 +18,8 @@ const battleSchema = new mongoose.Schema({
     opponentHP: [Number],
     challengerMove: { type: String, default: null },
     opponentMove: { type: String, default: null },
-    currentTurn: { type: Number, default: 1 }
+    currentTurn: { type: Number, default: 1 },
+    currentAttacker: { type: String, enum: ['challenger', 'opponent'], default: null }
   },
   log: [{
     turn: Number,

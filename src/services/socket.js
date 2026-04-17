@@ -1,34 +1,54 @@
 const { Server } = require('socket.io');
+const jwt = require('jsonwebtoken');
 
 let io;
 
 function init(server) {
   io = new Server(server, {
     cors: {
-      origin: "*", // Adjust for production if needed
+      origin: "*",
       methods: ["GET", "POST"]
     }
   });
 
+  // Authenticate socket connections via JWT
+  io.use((socket, next) => {
+    const token = socket.handshake.auth.token;
+    if (!token) {
+      return next(new Error('Authentication required'));
+    }
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      socket.userId = decoded.id;
+      next();
+    } catch (err) {
+      return next(new Error('Invalid token'));
+    }
+  });
+
   io.on('connection', (socket) => {
-    console.log('Socket: User connected', socket.id);
+    console.log(`Socket: User ${socket.userId} connected (${socket.id})`);
+
+    // Auto-join personal user room for targeted events
+    const userRoom = `user_${socket.userId}`;
+    socket.join(userRoom);
+    console.log(`Socket: User joined personal room: ${userRoom}`);
 
     // Join a battle room
     socket.on('join-battle', (battleId) => {
       const roomId = `battle_${battleId.toString()}`;
       socket.join(roomId);
-      socket.userId = socket.handshake.auth.token ? 'some-way-to-get-id' : null; // We need to store user ID
-      console.log(`Socket: User joined battle room: ${roomId}`);
+      console.log(`Socket: User ${socket.userId} joined battle room: ${roomId}`);
     });
 
     socket.on('leave-battle', (battleId) => {
       const roomId = `battle_${battleId.toString()}`;
       socket.leave(roomId);
-      console.log(`Socket: User left battle room: ${roomId}`);
+      console.log(`Socket: User ${socket.userId} left battle room: ${roomId}`);
     });
 
     socket.on('disconnect', () => {
-      console.log('Socket: User disconnected', socket.id);
+      console.log(`Socket: User ${socket.userId} disconnected (${socket.id})`);
     });
   });
 
@@ -43,6 +63,16 @@ function getIO() {
 }
 
 /**
+ * Emit to a specific user via their personal room
+ */
+function emitToUser(userId, event, data) {
+  if (io) {
+    const userRoom = `user_${userId.toString()}`;
+    io.to(userRoom).emit(event, data);
+  }
+}
+
+/**
  * Emit to a specific battle room
  */
 function emitToBattle(battleId, event, data) {
@@ -54,7 +84,6 @@ function emitToBattle(battleId, event, data) {
 
 /**
  * Check if at least one person is in the room
- * (Simplified: if anyone is in the room, we assume real-time is active)
  */
 async function isRoomActive(battleId) {
   if (!io) return false;
@@ -66,6 +95,7 @@ async function isRoomActive(battleId) {
 module.exports = {
   init,
   getIO,
+  emitToUser,
   emitToBattle,
   isRoomActive
 };
