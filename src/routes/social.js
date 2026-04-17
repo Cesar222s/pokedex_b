@@ -2,6 +2,7 @@ const express = require('express');
 const { User, FriendRequest } = require('../models/User');
 const auth = require('../middleware/auth');
 const { sendPushNotification } = require('./notifications');
+const { emitToUser } = require('../services/socket');
 const router = express.Router();
 
 // Search users
@@ -70,6 +71,11 @@ router.post('/friends/request', auth, async (req, res) => {
     { url: '/social' }
   );
 
+  // Real-time socket notification
+  emitToUser(targetUser._id, 'friend-request-received', {
+    from: { _id: req.user._id, username: req.user.username }
+  });
+
   res.status(201).json({ message: 'Friend request sent.', request });
 });
 
@@ -113,6 +119,11 @@ router.post('/friends/request/code', auth, async (req, res) => {
     { url: '/social' }
   );
 
+  // Real-time socket notification
+  emitToUser(targetUser._id, 'friend-request-received', {
+    from: { _id: req.user._id, username: req.user.username }
+  });
+
   res.status(201).json({ message: 'Friend request sent.', request });
 });
 
@@ -146,6 +157,11 @@ router.post('/friends/accept/:requestId', auth, async (req, res) => {
     { url: '/social' }
   );
 
+  // Real-time socket notification to the requester
+  emitToUser(request.from, 'friend-request-accepted', {
+    from: { _id: req.user._id, username: req.user.username }
+  });
+
   res.json({ message: 'Friend request accepted.' });
 });
 
@@ -163,6 +179,12 @@ router.post('/friends/reject/:requestId', auth, async (req, res) => {
 router.delete('/friends/:friendId', auth, async (req, res) => {
   await User.findByIdAndUpdate(req.user._id, { $pull: { friends: req.params.friendId } });
   await User.findByIdAndUpdate(req.params.friendId, { $pull: { friends: req.user._id } });
+
+  // Real-time socket notification to the removed friend
+  emitToUser(req.params.friendId, 'friend-removed', {
+    fromId: req.user._id
+  });
+
   res.json({ message: 'Friend removed.' });
 });
 
