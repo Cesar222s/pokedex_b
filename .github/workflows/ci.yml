@@ -22,6 +22,6 @@ jobs: #lo que realiza el codigo
         run: npm install -g @railway/cli
       - name: Deploy a Railway
         run: railway up
-       env:
+        env: 
         RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
     
