@@ -1,4 +1,4 @@
-name: deploy to s3
+name: deploy to railway
 
 on:
   push:
@@ -10,18 +10,22 @@ jobs: #lo que realiza el codigo
 
     steps:
       - uses: actions/checkout@v4
+      
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '18' 
+          
       - name: Install dependencies
         run: npm install
+        
       - name: pruebas        
         run: npm run test || echo "no hay pruebas"
+        
       - name: Instalar Railway CLI
         run: npm install -g @railway/cli
+        
       - name: Deploy a Railway
         run: railway up
         env: 
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-    
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN2 }}
