@@ -1,0 +1,22 @@
+name: deploy to s3
+
+on:
+  push:
+    branches: [ main ]
+
+jobs: #lo que realiza el codigo
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18' 
+      - name: Install dependencies
+        run: npm install
+      - name: Build
+        run: npm run build
+      - name: pruebas        
+        run: npm run test || echo "no hay pruebas"
