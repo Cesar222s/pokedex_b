@@ -23,5 +23,5 @@ jobs: #lo que realiza el codigo
       - name: Deploy a Railway
         run: railway up
         env: 
-        RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
     
