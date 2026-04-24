@@ -18,3 +18,10 @@ jobs: #lo que realiza el codigo
         run: npm install
       - name: pruebas        
         run: npm run test || echo "no hay pruebas"
+      - name: Instalar Railway CLI
+        run: npm install -g @railway/cli
+      - name: Deploy a Railway
+        run: railway up
+       env:
+        RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+    
